@@ -1,7 +1,5 @@
 # NoStructureOverlap 3.0.1 (Minecraft 1.20.1 / Forge)
 
-![NoStructureOverlap](src/main/resources/nostructureoverlap.png)
-
 Minecraft Forge mod for **1.20.1** that stops **different** structures from generating inside each other.
 
 It compares vanilla `StructureStart` bounding boxes after piece layout (including jigsaw) and before blocks are placed. Same structure id may still overlap; pieces inside one start are never treated as conflicts.
