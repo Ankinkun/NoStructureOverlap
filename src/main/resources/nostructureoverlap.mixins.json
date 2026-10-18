@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "com.ankin.nostructureoverlap.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "nostructureoverlap.refmap.json",
   "mixins": [
     "StructureMixin",
     "ChunkGeneratorMixin",
