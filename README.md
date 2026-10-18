@@ -41,7 +41,7 @@ Use real registry ids (`minecraft:village_plains`), not class names.
 ## Install
 
 1. NeoForge for Minecraft 1.21.1
-2. Put `nostructureoverlap-3.0.1.jar` in `mods/`
+2. Put `nostructureoverlap-1.21.1-3.0.1.jar` in `mods/`
 3. Launch client or dedicated server
 
 ## Compatibility
@@ -57,7 +57,7 @@ Use real registry ids (`minecraft:village_plains`), not class names.
 .\gradlew.bat build
 ```
 
-Output: `build/libs/nostructureoverlap-3.0.1.jar`
+Output: `build/libs/nostructureoverlap-1.21.1-3.0.1.jar`
 
 ## License
 
