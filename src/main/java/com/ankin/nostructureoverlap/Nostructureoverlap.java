@@ -31,7 +31,7 @@ public class Nostructureoverlap {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-        LOGGER.info("NoStructureOverlap ready — StructureStart bounding-box overlap prevention (1.20.1)");
+        LOGGER.info("NoStructureOverlap ready — StructureStart bounding-box overlap prevention (Forge 1.20.1)");
     }
 
     @SubscribeEvent

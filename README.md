@@ -1,12 +1,12 @@
-# NoStructureOverlap 3.0.1 (Minecraft 1.20.1)
+# NoStructureOverlap 3.0.1 (Minecraft 1.20.1 / Forge)
 
 ![NoStructureOverlap](src/main/resources/nostructureoverlap.png)
 
-NeoForge/Forge-compatible mod for **Minecraft 1.20.1** that stops **different** structures from generating inside each other.
+Minecraft Forge mod for **1.20.1** that stops **different** structures from generating inside each other.
 
 It compares vanilla `StructureStart` bounding boxes after piece layout (including jigsaw) and before blocks are placed. Same structure id may still overlap; pieces inside one start are never treated as conflicts.
 
-> **Note:** This branch targets **NeoForge 1.20.1** (`1.20.1-47.1.106`). NeoForged considers 1.20.1 NeoForge legacy; most 1.20.1 packs use MinecraftForge instead. The code uses the Forge-compatible API surface NeoForge 1.20.1 provides.
+**Target:** Minecraft Forge **47.4.20** (Java 17)
 
 ## How it works
 
@@ -38,7 +38,7 @@ It compares vanilla `StructureStart` bounding boxes after piece layout (includin
 
 ## Install
 
-1. NeoForge **1.20.1** (or a compatible Forge 1.20.1 loader that accepts this jar — verify in your pack)
+1. Install Minecraft Forge **1.20.1-47.4.20** (or compatible 47.4.x)
 2. Put `nostructureoverlap-3.0.1.jar` in `mods/`
 3. Launch client or dedicated server
 

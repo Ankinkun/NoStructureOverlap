@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 - Same core behavior as 3.0.0: vanilla `StructureStart` AABB overlap for different registry ids
-- **1.21.1:** branch `3.0.0-for-1.21.1` / tag `v3.0.1`
-- **1.20.1:** branch `3.0.1-for-1.20.1` (NeoForge `1.20.1-47.1.106`, Java 17, Forge-compatible API)
+- **1.21.1:** branch `3.0.0-for-1.21.1` / tag `v3.0.1` (NeoForge)
+- **1.20.1:** branch `3.0.1-for-1.20.1` (Minecraft Forge `47.4.20`, Java 17)
 
 ## [3.0.0] - 2026-10-18
 
