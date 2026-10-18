@@ -19,7 +19,9 @@
         "-Dfml.modFolders\u003dnostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
-      "env": {},
+      "env": {
+        "MOD_CLASSES": "nostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
+      },
       "console": "internalConsole",
       "shortenCommandLine": "none"
     },
@@ -41,7 +43,9 @@
         "-Dfml.modFolders\u003dnostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
-      "env": {},
+      "env": {
+        "MOD_CLASSES": "nostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
+      },
       "console": "internalConsole",
       "shortenCommandLine": "none"
     },
@@ -63,7 +67,9 @@
         "-Dfml.modFolders\u003dnostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
-      "env": {},
+      "env": {
+        "MOD_CLASSES": "nostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
+      },
       "console": "internalConsole",
       "shortenCommandLine": "none"
     },
@@ -85,7 +91,9 @@
         "-Dfml.modFolders\u003dnostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
-      "env": {},
+      "env": {
+        "MOD_CLASSES": "nostructureoverlap%%A:\\Orga\\RPG modpack\\NoStructureOverlap\\bin\\main"
+      },
       "console": "internalConsole",
       "shortenCommandLine": "none"
     }

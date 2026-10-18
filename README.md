@@ -1,10 +1,12 @@
-# NoStructureOverlap 3.0.1
+# NoStructureOverlap 3.0.1 (Minecraft 1.20.1)
 
-NeoForge mod for **Minecraft 1.21.1** that stops **different** structures from generating inside each other.
+![NoStructureOverlap](src/main/resources/nostructureoverlap.png)
+
+NeoForge/Forge-compatible mod for **Minecraft 1.20.1** that stops **different** structures from generating inside each other.
 
 It compares vanilla `StructureStart` bounding boxes after piece layout (including jigsaw) and before blocks are placed. Same structure id may still overlap; pieces inside one start are never treated as conflicts.
 
-**Release:** [v3.0.1](https://github.com/Ankinkun/NoStructureOverlap/releases/tag/v3.0.1)
+> **Note:** This branch targets **NeoForge 1.20.1** (`1.20.1-47.1.106`). NeoForged considers 1.20.1 NeoForge legacy; most 1.20.1 packs use MinecraftForge instead. The code uses the Forge-compatible API surface NeoForge 1.20.1 provides.
 
 ## How it works
 
@@ -12,8 +14,6 @@ It compares vanilla `StructureStart` bounding boxes after piece layout (includin
 2. Pieces are built → `StructureStart.getBoundingBox()` is available
 3. If that box intersects another tracked start with a **different** registry id, the mod returns `StructureStart.INVALID_START`
 4. Vanilla never stores or places the blocked start
-
-Tracking is dimension-scoped and in-memory (`StructureBoundingBoxTracker`).
 
 ## Config
 
@@ -28,8 +28,6 @@ Tracking is dimension-scoped and in-memory (`StructureBoundingBoxTracker`).
 | `structureBlacklist` | `[]` | These ids skip checks |
 | `structureSpecificEnabled` | `[]` | Overrides like `["minecraft:mineshaft=false"]` |
 
-Use real registry ids (`minecraft:village_plains`), not class names.
-
 ## Commands
 
 | Command | Description |
@@ -40,16 +38,11 @@ Use real registry ids (`minecraft:village_plains`), not class names.
 
 ## Install
 
-1. NeoForge for Minecraft 1.21.1
+1. NeoForge **1.20.1** (or a compatible Forge 1.20.1 loader that accepts this jar — verify in your pack)
 2. Put `nostructureoverlap-3.0.1.jar` in `mods/`
 3. Launch client or dedicated server
 
-## Compatibility
-
-- Minecraft **1.21.1**
-- NeoForge **21.1.208** (project pin; dependency range `[21,)`)
-- Vanilla and modded structures that use `Structure.generate` / `StructureStart`
-- Does not cover custom worldgen that places blocks without structure starts
+Server-only install is supported (`displayTest = IGNORE_SERVER_VERSION`).
 
 ## Build
 

@@ -1,9 +1,9 @@
 package com.ankin.nostructureoverlap;
 
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -12,47 +12,47 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@EventBusSubscriber(modid = Nostructureoverlap.MODID)
+@Mod.EventBusSubscriber(modid = Nostructureoverlap.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class Config {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
-    private static final ModConfigSpec.BooleanValue ENABLE_OVERLAP_PREVENTION = BUILDER
+    private static final ForgeConfigSpec.BooleanValue ENABLE_OVERLAP_PREVENTION = BUILDER
             .comment("Enable structure overlap prevention using StructureStart bounding boxes.")
             .define("enableOverlapPrevention", true);
 
-    private static final ModConfigSpec.BooleanValue LOG_BLOCKED_STRUCTURES = BUILDER
+    private static final ForgeConfigSpec.BooleanValue LOG_BLOCKED_STRUCTURES = BUILDER
             .comment("Log when structures are blocked due to bounding-box overlap with a different structure id.")
             .define("logBlockedStructures", true);
 
-    private static final ModConfigSpec.BooleanValue USE_3D_OVERLAP_DETECTION = BUILDER
+    private static final ForgeConfigSpec.BooleanValue USE_3D_OVERLAP_DETECTION = BUILDER
             .comment(
                     "Use full 3D BoundingBox.intersects (default).",
                     "When false, only X/Z overlap is considered so vertically separated structures may coexist."
             )
             .define("use3DOverlapDetection", true);
 
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> STRUCTURE_WHITELIST = BUILDER
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> STRUCTURE_WHITELIST = BUILDER
             .comment(
                     "If non-empty, only these structure registry ids participate in overlap checks.",
                     "Example: [\"minecraft:village_plains\", \"minecraft:stronghold\"]"
             )
             .define("structureWhitelist", Arrays.asList(), Config::isValidStructureIdList);
 
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> STRUCTURE_BLACKLIST = BUILDER
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> STRUCTURE_BLACKLIST = BUILDER
             .comment(
                     "Structure registry ids excluded from overlap checks (always allowed to place).",
                     "Use real registry ids such as minecraft:ruined_portal, not class names."
             )
             .define("structureBlacklist", Arrays.asList(), Config::isValidStructureIdList);
 
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> STRUCTURE_SPECIFIC_ENABLED_RAW = BUILDER
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> STRUCTURE_SPECIFIC_ENABLED_RAW = BUILDER
             .comment(
                     "Per-structure participation overrides. Format: [\"structure_id=true\", \"another_id=false\"]",
                     "Example: [\"minecraft:village_plains=true\", \"minecraft:mineshaft=false\"]"
             )
             .define("structureSpecificEnabled", Arrays.asList(), Config::isValidStructureBooleanList);
 
-    static final ModConfigSpec SPEC = BUILDER.build();
+    static final ForgeConfigSpec SPEC = BUILDER.build();
 
     public static boolean enableOverlapPrevention;
     public static boolean logBlockedStructures;
@@ -122,9 +122,6 @@ public class Config {
         return true;
     }
 
-    /**
-     * Whether this structure id should participate in overlap prevention.
-     */
     public static boolean isStructureEnabled(String structureId) {
         if (structureSpecificEnabled.containsKey(structureId)) {
             return structureSpecificEnabled.get(structureId);

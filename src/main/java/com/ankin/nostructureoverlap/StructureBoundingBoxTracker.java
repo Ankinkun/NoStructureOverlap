@@ -1,6 +1,7 @@
 package com.ankin.nostructureoverlap;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
@@ -125,12 +126,12 @@ public final class StructureBoundingBoxTracker {
         }
 
         List<TrackedStructure> result = new ArrayList<>();
-        for (ChunkPos chunkPos : box.intersectingChunks().toList()) {
+        forEachIntersectingChunk(box, chunkPos -> {
             Set<TrackedStructure> set = byChunk.get(chunkPos.toLong());
             if (set != null) {
                 result.addAll(set);
             }
-        }
+        });
         return result;
     }
 
@@ -138,9 +139,8 @@ public final class StructureBoundingBoxTracker {
         Map<Long, Set<TrackedStructure>> byChunk =
                 BY_DIMENSION.computeIfAbsent(dimKey, k -> new ConcurrentHashMap<>());
 
-        for (ChunkPos chunkPos : placement.boundingBox.intersectingChunks().toList()) {
-            byChunk.computeIfAbsent(chunkPos.toLong(), k -> ConcurrentHashMap.newKeySet()).add(placement);
-        }
+        forEachIntersectingChunk(placement.boundingBox, chunkPos ->
+                byChunk.computeIfAbsent(chunkPos.toLong(), k -> ConcurrentHashMap.newKeySet()).add(placement));
 
         if (Config.logBlockedStructures) {
             LOGGER.debug(
@@ -171,6 +171,21 @@ public final class StructureBoundingBoxTracker {
 
     private static String dimensionKey(@Nullable ResourceKey<Level> dimension) {
         return dimension != null ? dimension.location().toString() : "unknown";
+    }
+
+    /**
+     * 1.20.1 BoundingBox has no intersectingChunks(); iterate section coords manually.
+     */
+    private static void forEachIntersectingChunk(BoundingBox box, java.util.function.Consumer<ChunkPos> consumer) {
+        int minChunkX = SectionPos.blockToSectionCoord(box.minX());
+        int minChunkZ = SectionPos.blockToSectionCoord(box.minZ());
+        int maxChunkX = SectionPos.blockToSectionCoord(box.maxX());
+        int maxChunkZ = SectionPos.blockToSectionCoord(box.maxZ());
+        for (int x = minChunkX; x <= maxChunkX; x++) {
+            for (int z = minChunkZ; z <= maxChunkZ; z++) {
+                consumer.accept(new ChunkPos(x, z));
+            }
+        }
     }
 
     private static BoundingBox copyBox(BoundingBox box) {
