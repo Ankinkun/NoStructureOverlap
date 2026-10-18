@@ -39,13 +39,13 @@ public class Nostructureoverlap {
 
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
-        StructurePlacementValidator.clearStructures();
+        StructureBoundingBoxTracker.clearAll();
     }
 
     @SubscribeEvent
     public void onLevelUnload(LevelEvent.Unload event) {
         if (!event.getLevel().isClientSide() && event.getLevel() instanceof ServerLevel serverLevel) {
-            StructurePlacementValidator.clearDimension(serverLevel.dimension());
+            StructureBoundingBoxTracker.clearDimension(serverLevel.dimension());
         }
     }
 
@@ -54,14 +54,14 @@ public class Nostructureoverlap {
         event.getDispatcher().register(Commands.literal("nostructureoverlap")
                 .then(Commands.literal("status")
                         .executes(context -> {
-                            int structureCount = StructurePlacementValidator.getStructureCount();
+                            int count = StructureBoundingBoxTracker.getTrackedCount();
                             context.getSource().sendSuccess(() -> Component.literal(
                                     "NoStructureOverlap: "
                                             + (Config.enableOverlapPrevention ? "enabled" : "disabled")
-                                            + " | tracked: " + structureCount
+                                            + " | tracked: " + count
                                             + " | mode: " + (Config.use3DOverlapDetection ? "3D" : "2D")
                             ), false);
-                            return structureCount;
+                            return count;
                         }))
                 .then(Commands.literal("info")
                         .executes(context -> {
@@ -78,7 +78,7 @@ public class Nostructureoverlap {
                                     .append(Config.logBlockedStructures ? "Enabled" : "Disabled")
                                     .append('\n');
                             info.append("• Tracked Structures: ")
-                                    .append(StructurePlacementValidator.getStructureCount())
+                                    .append(StructureBoundingBoxTracker.getTrackedCount())
                                     .append('\n');
 
                             if (!Config.structureWhitelist.isEmpty()) {

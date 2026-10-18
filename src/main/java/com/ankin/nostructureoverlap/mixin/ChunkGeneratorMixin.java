@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Publishes StructureManager (and thus dimension) for Structure.generate overlap checks.
+ * Publishes the generating dimension for bounding-box overlap checks.
  */
 @Mixin(ChunkGenerator.class)
 public class ChunkGeneratorMixin {

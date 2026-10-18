@@ -1,35 +1,34 @@
 package com.ankin.nostructureoverlap;
 
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.StructureManager;
 
 import javax.annotation.Nullable;
 
 /**
- * Thread-local worldgen context so Structure.generate can resolve dimension and
- * optionally query already-persisted structure starts via StructureManager.
+ * Thread-local dimension for structure generation so bounding-box tracking
+ * stays per-world during concurrent chunk gen.
  */
 public final class StructureOverlapContext {
-    private static final ThreadLocal<Active> ACTIVE = new ThreadLocal<>();
+    private static final ThreadLocal<ResourceKey<Level>> DIMENSION = new ThreadLocal<>();
 
     private StructureOverlapContext() {}
 
     public static void push(StructureManager structureManager) {
-        ResourceKey<Level> dimension = resolveDimension(structureManager);
-        ACTIVE.set(new Active(dimension, structureManager));
+        DIMENSION.set(resolveDimension(structureManager));
     }
 
     public static void pop() {
-        ACTIVE.remove();
+        DIMENSION.remove();
     }
 
     @Nullable
-    public static Active current() {
-        return ACTIVE.get();
+    public static ResourceKey<Level> dimension() {
+        return DIMENSION.get();
     }
 
     @Nullable
@@ -43,6 +42,4 @@ public final class StructureOverlapContext {
         }
         return null;
     }
-
-    public record Active(@Nullable ResourceKey<Level> dimension, StructureManager structureManager) {}
 }

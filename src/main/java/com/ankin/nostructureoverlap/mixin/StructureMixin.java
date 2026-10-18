@@ -1,9 +1,10 @@
 package com.ankin.nostructureoverlap.mixin;
 
 import com.ankin.nostructureoverlap.Config;
+import com.ankin.nostructureoverlap.StructureBoundingBoxTracker;
 import com.ankin.nostructureoverlap.StructureOverlapContext;
-import com.ankin.nostructureoverlap.StructurePlacementValidator;
 import com.mojang.logging.LogUtils;
+import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +17,6 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-import net.minecraft.core.Holder;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,9 +26,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.function.Predicate;
 
 /**
- * After piece layout finishes (StructureStart bounding box available), reject starts
- * that intersect a different structure registry id. Returning INVALID_START prevents
- * setStartForStructure and later block placement.
+ * After piece layout, reject starts whose bounding boxes intersect a different
+ * structure registry id by returning {@link StructureStart#INVALID_START}.
  */
 @Mixin(Structure.class)
 public class StructureMixin {
@@ -68,15 +67,7 @@ public class StructureMixin {
             return;
         }
 
-        StructureOverlapContext.Active context = StructureOverlapContext.current();
-        boolean accepted = StructurePlacementValidator.tryAccept(
-                context != null ? context.dimension() : null,
-                structureId,
-                start,
-                context != null ? context.structureManager() : null
-        );
-
-        if (!accepted) {
+        if (!StructureBoundingBoxTracker.tryAccept(StructureOverlapContext.dimension(), structureId, start)) {
             cir.setReturnValue(StructureStart.INVALID_START);
         }
     }
