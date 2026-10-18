@@ -39,7 +39,7 @@ It compares vanilla `StructureStart` bounding boxes after piece layout (includin
 ## Install
 
 1. Install Minecraft Forge **1.20.1-47.4.20** (or compatible 47.4.x)
-2. Put `nostructureoverlap-3.0.1.jar` in `mods/`
+2. Put `nostructureoverlap-1.20.1-3.0.1.jar` in `mods/`
 3. Launch client or dedicated server
 
 Server-only install is supported (`displayTest = IGNORE_SERVER_VERSION`).
@@ -50,7 +50,7 @@ Server-only install is supported (`displayTest = IGNORE_SERVER_VERSION`).
 .\gradlew.bat build
 ```
 
-Output: `build/libs/nostructureoverlap-3.0.1.jar`
+Output: `build/libs/nostructureoverlap-1.20.1-3.0.1.jar`
 
 ## License
 
