@@ -1,5 +1,7 @@
 # No Structure Overlap v3.0.0
 
+![NoStructureOverlap](src/main/resources/nostructureoverlap.png)
+
 A NeoForge mod for Minecraft 1.21.1 that prevents **different** structure types from generating inside each other by comparing vanilla `StructureStart` bounding boxes — the same boxes [MiniHUD](https://modrinth.com/project/UMxybHE8) displays.
 
 ## Features
