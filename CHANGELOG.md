@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.0] - 2026-10-18
 
 ### Added
-- Bounding-box overlap engine using vanilla `StructureStart.getBoundingBox()` (MiniHUD-equivalent)
+- Bounding-box overlap engine using vanilla `StructureStart.getBoundingBox()`
 - `ChunkGenerator` mixin to publish dimension / `StructureManager` context during `createStructures`
 - Safe loaded-chunk scan via `getChunkNow` (no worldgen status upgrades)
 - Dimension unload and server-stop tracker cleanup
@@ -18,13 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Overlap rule: block only when **different** structure registry ids have intersecting boxes
 - Same registry id may overlap; pieces inside one start are never compared
 - Config retargeted to participation filters (whitelist / blacklist / per-id enable)
-- Commands updated for BB tracking (`cleanup` and center-distance settings removed)
+- Commands reduced to read-only `status` / `info` / `structures` (configure via toml)
 
 ### Removed
 - Estimated structure radii / center-distance primary overlap rule
 - Broken default blacklist entries using class-like names (`minecraft:jigsawstructure`, etc.)
 - `minOverlapDistance` and `structureSpecificDistances` config options
 - HEAD-of-generate interception and reflection-based structure id resolution
+- Runtime `/toggle`, `/toggle3D`, `/clear`, and `/cleanup` commands from older versions
 
 ### Breaking Changes
 - Config keys removed: `minOverlapDistance`, `structureSpecificDistances`

@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks accepted structure starts by MiniHUD-equivalent bounding boxes and
+ * Tracks accepted structure starts by their StructureStart bounding boxes and
  * rejects new starts whose boxes intersect a different structure registry id.
  */
 public final class StructurePlacementValidator {
@@ -241,15 +241,6 @@ public final class StructurePlacementValidator {
         return (int) BY_DIMENSION.values().stream()
                 .flatMap(map -> map.values().stream())
                 .flatMap(Set::stream)
-                .distinct()
-                .count();
-    }
-
-    public static int getStructureCount(ResourceLocation structureId) {
-        return (int) BY_DIMENSION.values().stream()
-                .flatMap(map -> map.values().stream())
-                .flatMap(Set::stream)
-                .filter(tracked -> tracked.structureId.equals(structureId))
                 .distinct()
                 .count();
     }

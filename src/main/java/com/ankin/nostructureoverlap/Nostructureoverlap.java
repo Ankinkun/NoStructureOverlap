@@ -29,22 +29,17 @@ public class Nostructureoverlap {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-        LOGGER.info("NoStructureOverlap loaded — StructureStart bounding-box overlap prevention ready");
-        LOGGER.info("Uses MiniHUD-equivalent boxes after piece layout; blocks different structure ids only");
-        LOGGER.info("Use /nostructureoverlap status to inspect tracked structures");
+        LOGGER.info("NoStructureOverlap ready — StructureStart bounding-box overlap prevention");
     }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        // Do not clear the tracker here: spawn chunk STRUCTURE_STARTS may already be registered.
-        LOGGER.info("NoStructureOverlap: Server starting — BB overlap prevention active (3D={})",
-                Config.use3DOverlapDetection);
+        LOGGER.info("NoStructureOverlap: active (3D={})", Config.use3DOverlapDetection);
     }
 
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
         StructurePlacementValidator.clearStructures();
-        LOGGER.info("NoStructureOverlap: Server stopped — cleared tracked structures");
     }
 
     @SubscribeEvent
@@ -61,41 +56,12 @@ public class Nostructureoverlap {
                         .executes(context -> {
                             int structureCount = StructurePlacementValidator.getStructureCount();
                             context.getSource().sendSuccess(() -> Component.literal(
-                                    "NoStructureOverlap Status: "
-                                            + (Config.enableOverlapPrevention ? "Enabled" : "Disabled")
-                                            + " | Tracked Structures: " + structureCount
-                                            + " | Mode: " + (Config.use3DOverlapDetection ? "3D BB" : "2D BB")
+                                    "NoStructureOverlap: "
+                                            + (Config.enableOverlapPrevention ? "enabled" : "disabled")
+                                            + " | tracked: " + structureCount
+                                            + " | mode: " + (Config.use3DOverlapDetection ? "3D" : "2D")
                             ), false);
                             return structureCount;
-                        }))
-                .then(Commands.literal("clear")
-                        .executes(context -> {
-                            StructurePlacementValidator.clearStructures();
-                            context.getSource().sendSuccess(
-                                    () -> Component.literal("Cleared all tracked structure bounding boxes"),
-                                    true
-                            );
-                            return 1;
-                        }))
-                .then(Commands.literal("toggle")
-                        .executes(context -> {
-                            Config.enableOverlapPrevention = !Config.enableOverlapPrevention;
-                            context.getSource().sendSuccess(() -> Component.literal(
-                                    "Overlap prevention "
-                                            + (Config.enableOverlapPrevention ? "enabled" : "disabled")
-                            ), true);
-                            return 1;
-                        }))
-                .then(Commands.literal("toggle3D")
-                        .executes(context -> {
-                            Config.use3DOverlapDetection = !Config.use3DOverlapDetection;
-                            context.getSource().sendSuccess(() -> Component.literal(
-                                    "Overlap detection "
-                                            + (Config.use3DOverlapDetection
-                                            ? "3D (full BoundingBox.intersects)"
-                                            : "2D (X/Z only)")
-                            ), true);
-                            return 1;
                         }))
                 .then(Commands.literal("info")
                         .executes(context -> {
@@ -116,17 +82,17 @@ public class Nostructureoverlap {
                                     .append('\n');
 
                             if (!Config.structureWhitelist.isEmpty()) {
-                                info.append("• Whitelisted Structures: ")
+                                info.append("• Whitelist entries: ")
                                         .append(Config.structureWhitelist.size())
                                         .append('\n');
                             }
                             if (!Config.structureBlacklist.isEmpty()) {
-                                info.append("• Blacklisted Structures: ")
+                                info.append("• Blacklist entries: ")
                                         .append(Config.structureBlacklist.size())
                                         .append('\n');
                             }
                             if (!Config.structureSpecificEnabled.isEmpty()) {
-                                info.append("• Custom Enabled/Disabled Structures: ")
+                                info.append("• Per-structure overrides: ")
                                         .append(Config.structureSpecificEnabled.size())
                                         .append('\n');
                             }
@@ -137,7 +103,7 @@ public class Nostructureoverlap {
                 .then(Commands.literal("structures")
                         .executes(context -> {
                             StringBuilder structures = new StringBuilder();
-                            structures.append("Structure Configuration:\n");
+                            structures.append("Structure filters:\n");
 
                             if (!Config.structureWhitelist.isEmpty()) {
                                 structures.append("Whitelisted: ")
@@ -150,16 +116,14 @@ public class Nostructureoverlap {
                                         .append('\n');
                             }
                             if (!Config.structureSpecificEnabled.isEmpty()) {
-                                structures.append("Custom Enabled/Disabled:\n");
+                                structures.append("Overrides:\n");
                                 Config.structureSpecificEnabled.forEach((id, enabled) ->
                                         structures.append("  ").append(id).append(": ")
                                                 .append(enabled ? "Enabled" : "Disabled").append('\n'));
                             }
 
-                            if (structures.toString().equals("Structure Configuration:\n")) {
-                                structures.append(
-                                        "No structure-specific filters (all registry ids participate)"
-                                );
+                            if (structures.toString().equals("Structure filters:\n")) {
+                                structures.append("None (all registry ids participate)");
                             }
 
                             context.getSource().sendSuccess(

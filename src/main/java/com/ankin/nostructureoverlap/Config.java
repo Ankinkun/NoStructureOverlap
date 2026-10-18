@@ -17,7 +17,7 @@ public class Config {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     private static final ModConfigSpec.BooleanValue ENABLE_OVERLAP_PREVENTION = BUILDER
-            .comment("Enable structure overlap prevention using StructureStart bounding boxes (MiniHUD-equivalent).")
+            .comment("Enable structure overlap prevention using StructureStart bounding boxes.")
             .define("enableOverlapPrevention", true);
 
     private static final ModConfigSpec.BooleanValue LOG_BLOCKED_STRUCTURES = BUILDER
@@ -26,7 +26,7 @@ public class Config {
 
     private static final ModConfigSpec.BooleanValue USE_3D_OVERLAP_DETECTION = BUILDER
             .comment(
-                    "Use full 3D BoundingBox.intersects (default, matches MiniHUD boxes).",
+                    "Use full 3D BoundingBox.intersects (default).",
                     "When false, only X/Z overlap is considered so vertically separated structures may coexist."
             )
             .define("use3DOverlapDetection", true);

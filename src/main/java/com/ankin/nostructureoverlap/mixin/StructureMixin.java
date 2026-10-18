@@ -26,8 +26,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.function.Predicate;
 
 /**
- * After piece layout finishes (MiniHUD-equivalent BB available), reject starts that
- * intersect a different structure registry id. Returning INVALID_START prevents
+ * After piece layout finishes (StructureStart bounding box available), reject starts
+ * that intersect a different structure registry id. Returning INVALID_START prevents
  * setStartForStructure and later block placement.
  */
 @Mixin(Structure.class)
