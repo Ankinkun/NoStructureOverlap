@@ -1,294 +1,276 @@
 package com.ankin.nostructureoverlap;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.levelgen.structure.StructureSet;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import org.slf4j.Logger;
 
-import java.util.*;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Validates structure placement to prevent overlaps.
- * This is the core of the new approach - we validate placement decisions
- * before any generation work is done, making it much more efficient.
+ * Tracks accepted structure starts by MiniHUD-equivalent bounding boxes and
+ * rejects new starts whose boxes intersect a different structure registry id.
  */
-public class StructurePlacementValidator {
+public final class StructurePlacementValidator {
     private static final Logger LOGGER = LogUtils.getLogger();
-    
-    // Track placed structures by chunk for efficient lookup
-    private static final Map<String, Set<StructurePlacement>> placedStructures = new ConcurrentHashMap<>();
-    
-    // Track structure sets and their exclusion zones (for future use)
-    // private static final Map<ResourceLocation, StructureSetInfo> structureSetInfo = new ConcurrentHashMap<>();
-    
-    public static class StructurePlacement {
-        public final BlockPos center;
-        public final ResourceLocation structureId;
-        public final StructureSet structureSet;
-        public final long timestamp;
-        public final int exclusionRadius;
-        
-        public StructurePlacement(BlockPos center, ResourceLocation structureId, StructureSet structureSet) {
-            this.center = center;
-            this.structureId = structureId;
-            this.structureSet = structureSet;
-            this.timestamp = System.currentTimeMillis();
-            this.exclusionRadius = calculateExclusionRadius(structureId);
+
+    /** dimension id string -> chunkKey -> placements anchored in that chunk */
+    private static final Map<String, Map<Long, Set<TrackedStructure>>> BY_DIMENSION = new ConcurrentHashMap<>();
+
+    private StructurePlacementValidator() {}
+
+    public record TrackedStructure(
+            ResourceLocation structureId,
+            BoundingBox boundingBox,
+            ChunkPos startChunk
+    ) {
+        public TrackedStructure {
+            Objects.requireNonNull(structureId, "structureId");
+            Objects.requireNonNull(boundingBox, "boundingBox");
+            Objects.requireNonNull(startChunk, "startChunk");
+            // Defensive copy: BoundingBox is mutable
+            boundingBox = copyBox(boundingBox);
         }
-        
-        public boolean overlaps(StructurePlacement other) {
-            if (Config.use3DOverlapDetection) {
-                return overlaps3D(other);
-            } else {
-                return overlaps2D(other);
+
+        public boolean overlaps(TrackedStructure other, boolean use3D) {
+            if (use3D) {
+                return boundingBox.intersects(other.boundingBox);
             }
-        }
-        
-        public boolean overlaps3D(StructurePlacement other) {
-            // Calculate 3D distance between structure centers
-            double distance = Math.sqrt(center.distSqr(other.center));
-            double minDistance = exclusionRadius + other.exclusionRadius;
-            return distance < minDistance;
-        }
-        
-        public boolean overlaps2D(StructurePlacement other) {
-            // Calculate 2D distance (X-Z only) for horizontal overlap detection
-            double dx = center.getX() - other.center.getX();
-            double dz = center.getZ() - other.center.getZ();
-            double distance2D = Math.sqrt(dx * dx + dz * dz);
-            double minDistance2D = exclusionRadius + other.exclusionRadius;
-            return distance2D < minDistance2D;
-        }
-        
-        public boolean isInExclusionZone(BlockPos otherCenter, int otherExclusionRadius) {
-            if (Config.use3DOverlapDetection) {
-                return isInExclusionZone3D(otherCenter, otherExclusionRadius);
-            } else {
-                return isInExclusionZone2D(otherCenter, otherExclusionRadius);
-            }
-        }
-        
-        public boolean isInExclusionZone3D(BlockPos otherCenter, int otherExclusionRadius) {
-            // Calculate 3D distance for exclusion zone check
-            double distance = Math.sqrt(center.distSqr(otherCenter));
-            return distance < Math.max(exclusionRadius, otherExclusionRadius);
-        }
-        
-        public boolean isInExclusionZone2D(BlockPos otherCenter, int otherExclusionRadius) {
-            // Calculate 2D distance (X-Z only) for horizontal exclusion zone check
-            double dx = center.getX() - otherCenter.getX();
-            double dz = center.getZ() - otherCenter.getZ();
-            double distance2D = Math.sqrt(dx * dx + dz * dz);
-            return distance2D < Math.max(exclusionRadius, otherExclusionRadius);
-        }
-        
-        private int calculateExclusionRadius(ResourceLocation structureId) {
-            String structureIdString = structureId.toString();
-            
-            // Get structure-specific distance or use default
-            int baseDistance = Config.getStructureDistance(structureIdString);
-            
-            // Add some buffer for structure size
-            int structureSize = getEstimatedStructureSize(structureId);
-            
-            return Math.max(baseDistance, structureSize);
-        }
-        
-        private int getEstimatedStructureSize(ResourceLocation structureId) {
-            String path = structureId.getPath();
-            
-            // Estimate structure size based on type
-            if (path.contains("village")) {
-                return 64; // Villages are large
-            } else if (path.contains("mansion")) {
-                return 80; // Woodland mansions are very large
-            } else if (path.contains("monument")) {
-                return 60; // Ocean monuments are large
-            } else if (path.contains("fortress")) {
-                return 50; // Nether fortresses are medium-large
-            } else if (path.contains("bastion")) {
-                return 70; // Bastion remnants are large
-            } else if (path.contains("outpost")) {
-                return 30; // Pillager outposts are medium
-            } else if (path.contains("ruined_portal")) {
-                return 20; // Ruined portals are small
-            } else if (path.contains("desert_pyramid")) {
-                return 25; // Desert pyramids are medium
-            } else if (path.contains("jungle_pyramid")) {
-                return 25; // Jungle temples are medium
-            } else if (path.contains("witch_hut")) {
-                return 15; // Witch huts are small
-            } else if (path.contains("igloo")) {
-                return 10; // Igloos are small
-            } else if (path.contains("shipwreck")) {
-                return 15; // Shipwrecks are small
-            } else if (path.contains("buried_treasure")) {
-                return 5; // Buried treasures are very small
-            } else if (path.contains("mineshaft")) {
-                return 40; // Mineshafts are medium-large
-            } else if (path.contains("stronghold")) {
-                return 30; // Strongholds are medium
-            } else if (path.contains("end_city")) {
-                return 50; // End cities are large
-            } else if (path.contains("end_gateway")) {
-                return 10; // End gateways are small
-            } else if (path.contains("ancient_city")) {
-                return 100; // Ancient cities are very large
-            } else if (path.contains("trail_ruins")) {
-                return 20; // Trail ruins are small-medium
-            } else if (path.contains("trial_chambers")) {
-                return 30; // Trial chambers are medium
-            } else {
-                return Config.minOverlapDistance;
-            }
+            return boundingBox.intersects(
+                    other.boundingBox.minX(),
+                    other.boundingBox.minZ(),
+                    other.boundingBox.maxX(),
+                    other.boundingBox.maxZ()
+            );
         }
     }
-    
-    public static class StructureSetInfo {
-        public final StructureSet structureSet;
-        public final int exclusionZoneRadius;
-        public final Set<ResourceLocation> conflictingStructures;
-        
-        public StructureSetInfo(StructureSet structureSet, int exclusionZoneRadius) {
-            this.structureSet = structureSet;
-            this.exclusionZoneRadius = exclusionZoneRadius;
-            this.conflictingStructures = new HashSet<>();
-        }
-    }
-    
+
     /**
-     * Check if a structure can be placed at the given position without overlapping.
-     * This is the main validation method called before structure generation.
+     * Atomically checks for a conflicting different-id BB and registers on success.
+     *
+     * @return {@code true} if the start may be stored by vanilla
      */
-    public static boolean canPlaceStructureAt(BlockPos center, ResourceLocation structureId, StructureSet structureSet) {
+    public static boolean tryAccept(
+            @Nullable ResourceKey<Level> dimension,
+            ResourceLocation structureId,
+            StructureStart start,
+            @Nullable StructureManager structureManager
+    ) {
         if (!Config.enableOverlapPrevention) {
             return true;
         }
-        
-        String structureIdString = structureId.toString();
-        
-        // Check if this specific structure is enabled
-        if (!Config.isStructureEnabled(structureIdString)) {
-            return true; // Allow placement if structure is disabled
+        if (!start.isValid()) {
+            return true;
         }
-        
-        StructurePlacement newPlacement = new StructurePlacement(center, structureId, structureSet);
-        
-        // Check for overlaps in nearby chunks
-        int searchRadius = newPlacement.exclusionRadius / 16 + 2; // Convert to chunk radius
-        ChunkPos centerChunk = new ChunkPos(center);
-        
-        for (int x = -searchRadius; x <= searchRadius; x++) {
-            for (int z = -searchRadius; z <= searchRadius; z++) {
-                ChunkPos nearbyChunk = new ChunkPos(centerChunk.x + x, centerChunk.z + z);
-                String chunkKey = getChunkKey(nearbyChunk);
-                Set<StructurePlacement> nearbyStructures = placedStructures.get(chunkKey);
-                
-                if (nearbyStructures != null) {
-                    for (StructurePlacement existing : nearbyStructures) {
-                        // Check if existing structure is also enabled
-                        String existingStructureIdString = existing.structureId.toString();
-                        if (!Config.isStructureEnabled(existingStructureIdString)) {
-                            continue; // Skip disabled structures
-                        }
-                        
-                        // Check for overlap
-                        if (newPlacement.overlaps(existing)) {
-                            if (Config.logBlockedStructures) {
-                                LOGGER.info("Blocked structure {} at {} due to overlap with {} at {} (distance: {:.1f})", 
-                                    structureId, center, existing.structureId, existing.center,
-                                    Math.sqrt(center.distSqr(existing.center)));
-                            }
-                            return false;
-                        }
-                    }
+        if (!Config.isStructureEnabled(structureId.toString())) {
+            return true;
+        }
+
+        BoundingBox box = copyBox(start.getBoundingBox());
+        TrackedStructure candidate = new TrackedStructure(structureId, box, start.getChunkPos());
+        String dimKey = dimensionKey(dimension);
+
+        // Per-dimension monitor: check+register must be atomic across worldgen threads.
+        synchronized (lockFor(dimKey)) {
+            // In-memory tracker is the source of truth during STRUCTURE_STARTS.
+            // Optional non-blocking scan of already-loaded neighbor starts covers restarts
+            // when neighbors are already present in the live chunk map.
+            TrackedStructure conflict = findTrackedConflict(dimKey, candidate);
+            if (conflict == null && structureManager != null) {
+                conflict = findLoadedChunkConflict(structureManager, candidate);
+            }
+            if (conflict != null) {
+                if (Config.logBlockedStructures) {
+                    LOGGER.info(
+                            "Blocked structure {} at chunk ({}, {}) — BB {} overlaps {} at chunk ({}, {}) BB {}",
+                            structureId,
+                            candidate.startChunk.x,
+                            candidate.startChunk.z,
+                            formatBox(candidate.boundingBox),
+                            conflict.structureId,
+                            conflict.startChunk.x,
+                            conflict.startChunk.z,
+                            formatBox(conflict.boundingBox)
+                    );
+                }
+                return false;
+            }
+            registerUnlocked(dimKey, candidate);
+            return true;
+        }
+    }
+
+    @Nullable
+    private static TrackedStructure findTrackedConflict(String dimKey, TrackedStructure candidate) {
+        boolean use3D = Config.use3DOverlapDetection;
+
+        for (TrackedStructure existing : collectNearbyTracked(dimKey, candidate.boundingBox)) {
+            if (existing.structureId.equals(candidate.structureId)) {
+                continue; // same registry id may overlap
+            }
+            if (!Config.isStructureEnabled(existing.structureId.toString())) {
+                continue;
+            }
+            if (candidate.overlaps(existing, use3D)) {
+                return existing;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Only inspect chunks already resident in the server chunk map.
+     * Never request status upgrades — that deadlocks during STRUCTURE_STARTS.
+     */
+    @Nullable
+    private static TrackedStructure findLoadedChunkConflict(
+            StructureManager structureManager,
+            TrackedStructure candidate
+    ) {
+        LevelAccessor level = StructureManagerAccess.getLevel(structureManager);
+        if (!(level instanceof ServerLevel serverLevel)) {
+            // WorldGenRegion / other accessors: skip — in-memory tracker covers concurrent gen.
+            return null;
+        }
+
+        Registry<Structure> registry = structureManager.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        boolean use3D = Config.use3DOverlapDetection;
+        var chunkSource = serverLevel.getChunkSource();
+
+        for (ChunkPos chunkPos : candidate.boundingBox.intersectingChunks().toList()) {
+            ChunkAccess chunk = chunkSource.getChunkNow(chunkPos.x, chunkPos.z);
+            if (chunk == null || !chunk.getPersistedStatus().isOrAfter(ChunkStatus.STRUCTURE_STARTS)) {
+                continue;
+            }
+
+            for (Map.Entry<Structure, StructureStart> entry : chunk.getAllStarts().entrySet()) {
+                StructureStart existingStart = entry.getValue();
+                if (existingStart == null || !existingStart.isValid()) {
+                    continue;
+                }
+
+                ResourceLocation existingId = registry.getKey(entry.getKey());
+                if (existingId == null || existingId.equals(candidate.structureId)) {
+                    continue;
+                }
+                if (!Config.isStructureEnabled(existingId.toString())) {
+                    continue;
+                }
+
+                TrackedStructure existing = new TrackedStructure(
+                        existingId,
+                        existingStart.getBoundingBox(),
+                        existingStart.getChunkPos()
+                );
+                if (candidate.overlaps(existing, use3D)) {
+                    return existing;
                 }
             }
         }
-        
-        return true;
+        return null;
     }
-    
-    /**
-     * Register a structure placement after validation passes.
-     * This is called when a structure is actually placed.
-     */
-    public static void registerStructurePlacement(BlockPos center, ResourceLocation structureId, StructureSet structureSet) {
-        if (!Config.enableOverlapPrevention) {
-            return;
+
+    private static List<TrackedStructure> collectNearbyTracked(String dimKey, BoundingBox box) {
+        Map<Long, Set<TrackedStructure>> byChunk = BY_DIMENSION.get(dimKey);
+        if (byChunk == null || byChunk.isEmpty()) {
+            return List.of();
         }
-        
-        String structureIdString = structureId.toString();
-        
-        // Only track structures that are enabled
-        if (!Config.isStructureEnabled(structureIdString)) {
-            return;
+
+        List<TrackedStructure> result = new ArrayList<>();
+        for (ChunkPos chunkPos : box.intersectingChunks().toList()) {
+            Set<TrackedStructure> set = byChunk.get(chunkPos.toLong());
+            if (set != null) {
+                result.addAll(set);
+            }
         }
-        
-        StructurePlacement placement = new StructurePlacement(center, structureId, structureSet);
-        ChunkPos chunkPos = new ChunkPos(center);
-        String chunkKey = getChunkKey(chunkPos);
-        
-        placedStructures.computeIfAbsent(chunkKey, k -> ConcurrentHashMap.newKeySet()).add(placement);
-        
+        return result;
+    }
+
+    private static void registerUnlocked(String dimKey, TrackedStructure placement) {
+        Map<Long, Set<TrackedStructure>> byChunk =
+                BY_DIMENSION.computeIfAbsent(dimKey, k -> new ConcurrentHashMap<>());
+
+        // Index under every chunk the BB touches so lookups by intersectingChunks are complete.
+        for (ChunkPos chunkPos : placement.boundingBox.intersectingChunks().toList()) {
+            byChunk.computeIfAbsent(chunkPos.toLong(), k -> ConcurrentHashMap.newKeySet()).add(placement);
+        }
+
         if (Config.logBlockedStructures) {
-            LOGGER.debug("Registered structure {} at {} with exclusion radius {}", 
-                structureId, center, placement.exclusionRadius);
+            LOGGER.debug(
+                    "Accepted structure {} at chunk ({}, {}) BB {}",
+                    placement.structureId,
+                    placement.startChunk.x,
+                    placement.startChunk.z,
+                    formatBox(placement.boundingBox)
+            );
         }
     }
-    
-    /**
-     * Get the chunk key for a ChunkPos.
-     */
-    private static String getChunkKey(ChunkPos chunkPos) {
-        return chunkPos.x + "," + chunkPos.z;
-    }
-    
-    /**
-     * Clear all tracked structure placements.
-     */
+
     public static void clearStructures() {
-        placedStructures.clear();
-        LOGGER.info("Cleared all structure placements");
+        BY_DIMENSION.clear();
+        LOGGER.info("Cleared all tracked structure bounding boxes");
     }
-    
-    /**
-     * Get the total number of tracked structures.
-     */
-    public static int getStructureCount() {
-        return placedStructures.values().stream().mapToInt(Set::size).sum();
-    }
-    
-    /**
-     * Get structure count for a specific structure type.
-     */
-    public static int getStructureCount(ResourceLocation structureId) {
-        return (int) placedStructures.values().stream()
-            .flatMap(Set::stream)
-            .filter(placement -> placement.structureId.equals(structureId))
-            .count();
-    }
-    
-    /**
-     * Clean up old structure placements to prevent memory leaks.
-     * This should be called periodically.
-     */
-    public static void cleanupOldStructures() {
-        long currentTime = System.currentTimeMillis();
-        long maxAge = 24 * 60 * 60 * 1000; // 24 hours
-        
-        int totalBefore = getStructureCount();
-        
-        placedStructures.values().forEach(placements -> 
-            placements.removeIf(placement -> currentTime - placement.timestamp > maxAge));
-        
-        int totalAfter = getStructureCount();
-        
-        if (totalBefore > totalAfter) {
-            LOGGER.debug("Cleaned up {} old structure placements", totalBefore - totalAfter);
+
+    public static void clearDimension(@Nullable ResourceKey<Level> dimension) {
+        String key = dimensionKey(dimension);
+        if (BY_DIMENSION.remove(key) != null) {
+            LOGGER.info("Cleared tracked structures for dimension {}", key);
         }
+    }
+
+    public static int getStructureCount() {
+        // Each placement is indexed in multiple chunks; count unique instances by identity.
+        return (int) BY_DIMENSION.values().stream()
+                .flatMap(map -> map.values().stream())
+                .flatMap(Set::stream)
+                .distinct()
+                .count();
+    }
+
+    public static int getStructureCount(ResourceLocation structureId) {
+        return (int) BY_DIMENSION.values().stream()
+                .flatMap(map -> map.values().stream())
+                .flatMap(Set::stream)
+                .filter(tracked -> tracked.structureId.equals(structureId))
+                .distinct()
+                .count();
+    }
+
+    private static String dimensionKey(@Nullable ResourceKey<Level> dimension) {
+        return dimension != null ? dimension.location().toString() : "unknown";
+    }
+
+    private static Object lockFor(String dimKey) {
+        // Intern so all threads sharing a dimension share one monitor.
+        return dimKey.intern();
+    }
+
+    private static BoundingBox copyBox(BoundingBox box) {
+        return new BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ());
+    }
+
+    private static String formatBox(BoundingBox box) {
+        return String.format(
+                "[%d,%d,%d -> %d,%d,%d]",
+                box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()
+        );
     }
 }

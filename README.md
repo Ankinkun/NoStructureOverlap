@@ -1,80 +1,72 @@
-# No Structure Overlap v2.0.0
+# No Structure Overlap v3.0.0
 
-An advanced Minecraft mod for NeoForge that prevents structure bounding boxes from overlapping during world generation using early interception and 3D detection.
+A NeoForge mod for Minecraft 1.21.1 that prevents **different** structure types from generating inside each other by comparing vanilla `StructureStart` bounding boxes — the same boxes [MiniHUD](https://modrinth.com/project/UMxybHE8) displays.
 
-## 🚀 Key Features
+## Features
 
-- **Early Interception**: Prevents overlaps before any generation work is done, improving performance
-- **3D Overlap Detection**: Properly handles structures at different Y levels (underground vs surface)
-- **2D/3D Toggle**: Configurable overlap detection mode for different use cases
-- **Smart Exclusion Zones**: Intelligent structure placement validation
-- **Per-Structure Configuration**: Customize settings for individual structure types
-- **Universal Compatibility**: Works with all structures, including those from other mods
+- **MiniHUD-equivalent bounding boxes** — uses `StructureStart.getBoundingBox()` after jigsaw/piece layout
+- **Clean cancel** — returns `INVALID_START` before the start is stored and before blocks place
+- **Different IDs only** — same structure registry id may still overlap (e.g. two villages); pieces within one start are never treated as conflicts
+- **3D or 2D checks** — full AABB by default; optional X/Z-only mode
+- **Per-structure filters** — whitelist, blacklist, and enable/disable overrides
+- **Modded structures** — works for anything that goes through vanilla `Structure.generate` / `StructureStart`
 
-## 🎯 How It Works
+## How it works
 
-The mod uses a revolutionary early interception approach at the `ChunkGenerator.findStructurePositions()` level, preventing structure overlaps before any generation work begins. This eliminates wasted computation and provides significantly better performance compared to traditional late interception methods.
+Vanilla already splits layout from build:
 
-### 3D Detection
-- **Surface vs Underground**: Underground structures no longer incorrectly block surface structures
-- **Vertical Spacing**: Proper 3D distance calculations prevent false overlaps
-- **Configurable**: Toggle between 3D and 2D detection modes as needed
+1. Spacing / exclusion zones choose candidate chunks
+2. `Structure.generate` builds pieces (jigsaw layout included) and creates a `StructureStart`
+3. Bounding box is available immediately from that start
+4. Blocks are placed much later in `placeInChunk`
 
-## ⚙️ Configuration
+This mod hooks **after** step 2. If the new start’s box intersects another accepted start with a **different** registry id, it returns `StructureStart.INVALID_START` so vanilla never stores or places it.
 
-### Core Settings
-- `enableOverlapPrevention`: Enable/disable the overlap prevention system (default: true)
-- `use3DOverlapDetection`: Enable 3D overlap detection (default: true)
-- `logBlockedStructures`: Log when structures are blocked due to overlap (default: true)
-- `minOverlapDistance`: Minimum distance between structure centers in blocks (default: 16)
+## Configuration
 
-### Advanced Settings
-- `structureWhitelist`: List of structures to enable overlap prevention for
-- `structureBlacklist`: List of structures to disable overlap prevention for
-- `structureSpecificDistances`: Custom distances for specific structures
-- `structureSpecificEnabled`: Per-structure enable/disable overrides
+File: `config/nostructureoverlap-common.toml`
 
-## 🎮 Commands
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `enableOverlapPrevention` | `true` | Master toggle |
+| `use3DOverlapDetection` | `true` | `true` = full 3D `BoundingBox.intersects`; `false` = X/Z only |
+| `logBlockedStructures` | `true` | Log blocked placements |
+| `structureWhitelist` | `[]` | If non-empty, only these ids participate |
+| `structureBlacklist` | `[]` | These ids always skip checks |
+| `structureSpecificEnabled` | `[]` | Per-id overrides, e.g. `["minecraft:mineshaft=false"]` |
 
-- `/nostructureoverlap status` - Check mod status and tracked structures
-- `/nostructureoverlap clear` - Clear all tracked structures
-- `/nostructureoverlap cleanup` - Clean up old structure placements
-- `/nostructureoverlap toggle` - Toggle overlap prevention on/off
-- `/nostructureoverlap toggle3D` - Toggle between 3D and 2D detection
-- `/nostructureoverlap info` - Display detailed mod information
-- `/nostructureoverlap structures` - Show structure configuration
+Use real registry ids such as `minecraft:village_plains`, not class names.
 
-## 📦 Installation
+## Commands
 
-1. Install NeoForge for Minecraft 1.21.1
-2. Download the mod JAR file
-3. Place it in your mods folder
-4. Start the game
+- `/nostructureoverlap status` — enabled state and tracked structure count
+- `/nostructureoverlap clear` — clear the in-memory BB tracker
+- `/nostructureoverlap toggle` — toggle prevention
+- `/nostructureoverlap toggle3D` — toggle 3D vs 2D
+- `/nostructureoverlap info` — detailed status
+- `/nostructureoverlap structures` — show participation filters
+
+## Installation
+
+1. Install NeoForge for Minecraft **1.21.1**
+2. Drop `nostructureoverlap-3.0.0.jar` into `mods/`
+3. Start the game or dedicated server
 
 ## Compatibility
 
-- Minecraft 1.21.1
-- NeoForge 21.1.207+
-- Compatible with other mods that add structures
+- Minecraft **1.21.1**
+- NeoForge **21.1.208** (project pin; range `[21,)`)
+- Vanilla and modded structures using the standard structure pipeline
+- Not covered: custom worldgen that places blocks without `StructureStart`
 
-## 🔧 Technical Details
+## Building
 
-### Architecture
-- **Early Interception**: Uses `ChunkGenerator.findStructurePositions()` mixin for maximum efficiency
-- **3D Distance Calculation**: Full 3D coordinate system for accurate overlap detection
-- **Chunk-Based Tracking**: Efficient structure placement tracking by chunk
-- **Automatic Cleanup**: Built-in memory management with configurable cleanup intervals
+```powershell
+.\gradlew.bat build
+```
 
-### Performance
-- **Zero Wasted Computation**: Structures are blocked before any generation work begins
-- **Memory Efficient**: Optimized data structures with automatic cleanup
-- **Scalable**: Handles large numbers of structures without performance degradation
-
-### Compatibility
-- **Universal**: Works with all structure types and mods
-- **Configurable**: Per-structure settings for maximum flexibility
-- **Backward Compatible**: Existing configurations work with new defaults
+JAR output: `build/libs/nostructureoverlap-3.0.0.jar`
 
 ## License
 
-This mod is provided as-is for educational and personal use.
+See [LICENSE](LICENSE).

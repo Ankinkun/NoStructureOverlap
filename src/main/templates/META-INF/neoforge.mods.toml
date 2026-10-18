@@ -32,7 +32,7 @@ displayName = "${mod_name}" #mandatory
 authors = "${mod_authors}" #optional
 
 # The description text for the mod (multi line!) (#mandatory)
-description = '''Advanced structure overlap prevention system that prevents structures from spawning inside each other during world generation. Uses early interception at the ChunkGenerator level to prevent overlaps before any generation work is done, improving performance. Features 3D overlap detection to properly handle structures at different Y levels (underground vs surface). Configurable per-structure settings and smart exclusion zones.'''
+description = '''Prevents different structure types from generating inside each other by comparing vanilla StructureStart bounding boxes (the same boxes MiniHUD displays) after piece layout and before block placement. Supports 3D or 2D overlap checks and per-structure participation filters.'''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
 [[mixins]]

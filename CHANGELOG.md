@@ -5,6 +5,33 @@ All notable changes to the NoStructureOverlap mod will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-10-18
+
+### Added
+- Bounding-box overlap engine using vanilla `StructureStart.getBoundingBox()` (MiniHUD-equivalent)
+- `ChunkGenerator` mixin to publish dimension / `StructureManager` context during `createStructures`
+- Safe loaded-chunk scan via `getChunkNow` (no worldgen status upgrades)
+- Dimension unload and server-stop tracker cleanup
+
+### Changed
+- Intercept at `Structure.generate` **RETURN** so jigsaw/piece layout BBs exist before cancel
+- Overlap rule: block only when **different** structure registry ids have intersecting boxes
+- Same registry id may overlap; pieces inside one start are never compared
+- Config retargeted to participation filters (whitelist / blacklist / per-id enable)
+- Commands updated for BB tracking (`cleanup` and center-distance settings removed)
+
+### Removed
+- Estimated structure radii / center-distance primary overlap rule
+- Broken default blacklist entries using class-like names (`minecraft:jigsawstructure`, etc.)
+- `minOverlapDistance` and `structureSpecificDistances` config options
+- HEAD-of-generate interception and reflection-based structure id resolution
+
+### Breaking Changes
+- Config keys removed: `minOverlapDistance`, `structureSpecificDistances`
+- Default blacklist is now empty (was incorrect class-name style ids)
+- Overlap semantics are AABB intersection of different ids, not estimated exclusion spheres
+- Existing `nostructureoverlap-common.toml` may need a one-time refresh for removed keys
+
 ## [2.0.1] - 2025-01-07
 
 ### Fixed

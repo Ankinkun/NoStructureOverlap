@@ -4,7 +4,9 @@
   "package": "com.ankin.nostructureoverlap.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "StructureMixin"
+    "StructureMixin",
+    "ChunkGeneratorMixin",
+    "StructureManagerAccessor"
   ],
   "client": [
   ],
